@@ -53,5 +53,5 @@ Program instructions include:
 | JGZ j     | if AC > 0 then IC <- j else IC <- IC+2 |      5 | jump-greather-than-zero |
 | READ j    | Xj <- next input                       |      6 | read                    |
 | PRINT j   | output [Xj]                            |      7 | print                   |
-| HALT      | stop execution                         |      _ | halt                    |
+| HALT _    | stop execution                         |      _ | halt                    |
 </pre>
