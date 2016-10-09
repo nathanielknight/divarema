@@ -1,0 +1,6 @@
+[package]
+name = "divarema"
+version = "0.1.0"
+authors = ["Nathaniel Knight <nknight@siaras.com>"]
+
+[dependencies]
