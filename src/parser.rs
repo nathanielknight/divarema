@@ -35,6 +35,25 @@ pub fn tokenize_line(source: &str) -> Result<(OpCode, usize), &'static str> {
     }
 }
 
+pub fn tokenize(source: &str) -> Result<Vec<(OpCode, usize)>, (usize, &'static str)> {
+    // Parse a program int a vector of opcodes and arguments or return
+    // the location and description of an error
+    let mut result: Vec<(OpCode, usize)> = Vec::new();
+    let semantic_lines = source.lines()
+        .enumerate()
+        .filter(|&(_,l)| !(l == ""))
+        .map(|(i,l)| (i, tokenize_line(l)));
+    for (idx, token) in semantic_lines {
+        match token {
+            Ok(oparg) => result.push(oparg),
+            // report index + 1 because most editors 1-index lines
+            Err(msg) => return Err((idx+1 as usize, msg))
+        }
+    }
+    return Ok(result)
+}
+
+
 
 #[cfg(test)]
 mod tests {
@@ -86,6 +105,33 @@ mod tests {
         // Check that empty lines are invalid
         assert_match!(tokenize_line(""),
                       Err("Missing OpCode"));
+    }
+
+    #[test]
+    fn test_tokenize() {
+        let valid_result = tokenize("LOAD 3\nADD 2");
+        match valid_result {
+            Ok(x) => assert_eq!(x, vec![(OpCode::Load, 3), (OpCode::Add, 2)]),
+            Err(_) => panic!("Expected valid source to be tokenized")
+        }
+
+        let blank_lines = tokenize("LOAD 3\n\nSUB 4");
+        match blank_lines {
+            Ok(x) => assert_eq!(x, vec![(OpCode::Load, 3), (OpCode::Sub, 4)]),
+            Err(_) => panic!("Expected blank lines to be omitted")
+        }
+
+        let invalid_result = tokenize("LOAD 3\nADD");
+        match invalid_result {
+            Err((2, "Missing Argument")) => (),
+            _ => panic!("Expected invalid source to throw a particular error")
+        }
+
+        let invalid_result_with_blanks = tokenize("LOAD 3\n\nSTORE boom");
+        match invalid_result_with_blanks {
+            Err((3, "Invalid Argument")) => (),
+            _ => panic!("Expected invalid result to not change line numbers")
+        }
     }
 
 }
