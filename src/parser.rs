@@ -1,4 +1,4 @@
-use instructions::OpCode;
+use instructions::{OpCode, DivaremaProgram};
 
 pub fn tokenize_line(source: &str) -> Result<(OpCode, usize), &'static str> {
     let mut tokens = source.split_whitespace().take(2);
@@ -35,7 +35,7 @@ pub fn tokenize_line(source: &str) -> Result<(OpCode, usize), &'static str> {
     }
 }
 
-pub fn tokenize(source: &str) -> Result<Vec<(OpCode, usize)>, (usize, &'static str)> {
+pub fn tokenize(source: &str) -> Result<DivaremaProgram, (usize, &'static str)> {
     // Parse a program int a vector of opcodes and arguments or return
     // the location and description of an error
     let mut result: Vec<(OpCode, usize)> = Vec::new();
