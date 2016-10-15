@@ -30,13 +30,13 @@ impl DivaremaEngine {
             OpCode::Add => apply_add(self, arg),
             OpCode::Sub => apply_sub(self, arg),
             OpCode::Store => apply_store(self, arg),
-            OpCode::Jgz => unimplemented!(),
+            OpCode::Jgz => apply_jgz(self, arg),
             OpCode::Read => unimplemented!(),
             OpCode::Print => unimplemented!(),
             OpCode::Halt => unimplemented!()
         };
     }
-    
+
 }
 
 
@@ -75,6 +75,7 @@ fn test_apply_add() {
     assert_eq!(test_engine.acc, 3);
 }
 
+
 fn apply_sub(engine: &mut DivaremaEngine, arg: usize) {
     let val = engine.memory[arg];
     let next_ic = engine.instruction_counter + 1;
@@ -109,6 +110,29 @@ fn test_apply_store() {
     apply_store(&mut test_engine, 9);
     assert_eq!(test_engine.memory[9], 7);
 }
+
+
+fn apply_jgz(engine: &mut DivaremaEngine, arg: usize) {
+    if engine.acc > 0 {
+        engine.instruction_counter = arg;
+    } else {
+        engine.instruction_counter += 1;
+    }
+}
+
+
+#[test]
+fn test_apply_jgz() {
+    let mut test_engine = DivaremaEngine::new(vec![], 10);
+    test_engine.acc = 1;
+    apply_jgz(&mut test_engine, 9);
+    assert_eq!(test_engine.instruction_counter, 9);
+    test_engine.instruction_counter = 0;
+    test_engine.acc = -1;
+    apply_jgz(&mut test_engine, 9);
+    assert_eq!(test_engine.instruction_counter, 1);
+}
+
 
 
 #[cfg(test)]
