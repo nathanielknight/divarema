@@ -1,4 +1,5 @@
 mod engine;
+pub mod io_engine;
 mod instructions;
 mod parser;
 
