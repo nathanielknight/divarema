@@ -1,24 +1,43 @@
+use std::io::{BufRead, BufReader, Write, sink, empty};
+use std::cmp::PartialEq;
+
 use instructions::{OpCode, DivaremaProgram};
+use io_module::DivaremaIoModule;
 
 type DivaremaMemory = Vec<i32>;
 
-#[derive(Debug,PartialEq)]
-pub struct DivaremaEngine {
+#[derive(Debug)]
+pub struct DivaremaEngine<I: BufRead, O: Write> {
     program: DivaremaProgram,
     memory: DivaremaMemory,
     acc: i32,
     instruction_counter: usize,
+    io_module: DivaremaIoModule<I,O>
 }
 
 
-impl DivaremaEngine {
+impl<I: BufRead, O: Write> PartialEq for DivaremaEngine<I,O> {
+    /// Divarema engines are considered equal if their programs,
+    /// memories, accumulators, and instruction counters match. We
+    /// ignore their IO engines.
+    fn eq(&self, other: &DivaremaEngine<I,O>) -> bool {
+        self.program == other.program &&
+            self.memory == other.memory &&
+            self.acc == other.acc &&
+            self.instruction_counter == other.instruction_counter
+    }
+}
 
-    fn new(program: DivaremaProgram, memsize: usize) -> DivaremaEngine{
+
+impl<I: BufRead, O: Write> DivaremaEngine<I,O> {
+
+    fn new(program: DivaremaProgram, memsize: usize, inp: I, outp: O) -> DivaremaEngine<I,O>{
         DivaremaEngine {
             program: program,
             memory: vec![0; memsize],
             acc: 0,
             instruction_counter: 0,
+            io_module: DivaremaIoModule{input: inp, output: outp},
         }
     }
 
@@ -40,7 +59,7 @@ impl DivaremaEngine {
 }
 
 
-fn apply_load(engine: &mut DivaremaEngine, arg: usize) {
+fn apply_load<I: BufRead, O: Write>(engine: &mut DivaremaEngine<I,O>, arg: usize) {
     let val = engine.memory[arg];
     let next_ic = engine.instruction_counter + 1;
     engine.acc = val;
@@ -49,7 +68,9 @@ fn apply_load(engine: &mut DivaremaEngine, arg: usize) {
 
 #[test]
 fn test_apply_load() {
-    let mut test_engine = DivaremaEngine::new(vec![], 10);
+    let inp = empty();
+    let outp = sink();
+    let mut test_engine = DivaremaEngine::new(vec![], 10, inp, outp);
     assert_eq!(test_engine.acc, 0);
     test_engine.memory[3] = 9;
     apply_load(&mut test_engine, 3);
@@ -57,7 +78,7 @@ fn test_apply_load() {
 }
 
 
-fn apply_add(engine: &mut DivaremaEngine, arg: usize) {
+fn apply_add<I: BufRead, O: Write>(engine: &mut DivaremaEngine<I,O>, arg: usize) {
     let val = engine.memory[arg];
     let next_ic = engine.instruction_counter + 1;
     engine.acc = engine.acc + val;
@@ -66,7 +87,9 @@ fn apply_add(engine: &mut DivaremaEngine, arg: usize) {
 
 #[test]
 fn test_apply_add() {
-    let mut test_engine = DivaremaEngine::new(vec![], 10);
+    let inp = empty();
+    let outp = sink();
+    let mut test_engine = DivaremaEngine::new(vec![], 10, inp, outp);
     test_engine.memory[0] = 1;
     test_engine.memory[9] = 2;
     apply_add(&mut test_engine, 0);
@@ -76,7 +99,7 @@ fn test_apply_add() {
 }
 
 
-fn apply_sub(engine: &mut DivaremaEngine, arg: usize) {
+fn apply_sub<I: BufRead, O: Write>(engine: &mut DivaremaEngine<I,O>, arg: usize) {
     let val = engine.memory[arg];
     let next_ic = engine.instruction_counter + 1;
     engine.acc = engine.acc - val;
@@ -85,7 +108,9 @@ fn apply_sub(engine: &mut DivaremaEngine, arg: usize) {
 
 #[test]
 fn test_apply_sub() {
-    let mut test_engine = DivaremaEngine::new(vec![], 10);
+    let inp = empty();
+    let outp = sink();
+    let mut test_engine = DivaremaEngine::new(vec![], 10, inp, outp);
     test_engine.memory[0] = 1;
     test_engine.memory[9] = 2;
     apply_sub(&mut test_engine, 0);
@@ -95,14 +120,16 @@ fn test_apply_sub() {
 }
 
 
-fn apply_store(engine: &mut DivaremaEngine, arg: usize) {
+fn apply_store<I: BufRead, O: Write>(engine: &mut DivaremaEngine<I,O>, arg: usize) {
     engine.memory[arg] = engine.acc;
     engine.instruction_counter += 1;
 }
 
 #[test]
 fn test_apply_store() {
-    let mut test_engine = DivaremaEngine::new(vec![], 10);
+    let inp = empty();
+    let outp = sink();    
+    let mut test_engine = DivaremaEngine::new(vec![], 10, inp, outp);
     test_engine.acc = 5;
     apply_store(&mut test_engine, 0);
     assert_eq!(test_engine.memory[0], 5);
@@ -112,7 +139,7 @@ fn test_apply_store() {
 }
 
 
-fn apply_jgz(engine: &mut DivaremaEngine, arg: usize) {
+fn apply_jgz<I: BufRead, O: Write>(engine: &mut DivaremaEngine<I,O>, arg: usize) {
     if engine.acc > 0 {
         engine.instruction_counter = arg;
     } else {
@@ -123,7 +150,9 @@ fn apply_jgz(engine: &mut DivaremaEngine, arg: usize) {
 
 #[test]
 fn test_apply_jgz() {
-    let mut test_engine = DivaremaEngine::new(vec![], 10);
+    let inp = empty();
+    let outp = sink();    
+    let mut test_engine = DivaremaEngine::new(vec![], 10, inp, outp);
     test_engine.acc = 1;
     apply_jgz(&mut test_engine, 9);
     assert_eq!(test_engine.instruction_counter, 9);
@@ -142,6 +171,8 @@ mod tests {
 
     #[test]
     fn test_engine_init() {
+        let inp = empty();
+        let outp = sink();        
         let test_prog = vec![
             (OpCode::Load, 0),
             (OpCode::Print, 0),
@@ -154,14 +185,20 @@ mod tests {
                 (OpCode::Print, 0),
                 (OpCode::Halt, 0),
             ],
-            10
+            10,
+            inp,
+            outp,
         );
+
+        let inp = empty();
+        let outp = sink();
 
         let test_engine_raw = DivaremaEngine {
             program: test_prog,
             memory: vec![0; 10],
             acc: 0,
-            instruction_counter: 0
+            instruction_counter: 0,
+            io_module: DivaremaIoModule{input: inp, output: outp},
         };
 
         assert_eq!(test_engine, test_engine_raw);

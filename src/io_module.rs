@@ -113,18 +113,21 @@ fn test_parse_and_format_i32() {
 /// # Examples
 ///
 /// ```rust
-/// use divarema::io_engine::DivaremaIoModule;
+/// use divarema::io_module::DivaremaIoModule;
 /// use std::io::{stdin, BufReader, stdout};
 /// let module1 = DivaremaIoModule{input: BufReader::new(stdin()), output: stdout()};
 /// ```
 ///
 /// A socket or a file should work just as well.
+
+#[derive(Debug)]
 pub struct DivaremaIoModule<I: BufRead, O: Write> {
     pub input: I,
     pub output: O
 }
 
 impl<I: BufRead, O: Write> DivaremaIoModule<I,O> {
+
     fn get_int(&mut self) -> Result<i32, &'static str> {
         let mut buf = String::new();
         let r = self.input.read_line(&mut buf);
