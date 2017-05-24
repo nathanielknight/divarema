@@ -128,7 +128,7 @@ pub struct DivaremaIoModule<I: BufRead, O: Write> {
 
 impl<I: BufRead, O: Write> DivaremaIoModule<I,O> {
 
-    fn get_int(&mut self) -> Result<i32, &'static str> {
+    pub fn get_int(&mut self) -> Result<i32, &'static str> {
         let mut buf = String::new();
         let r = self.input.read_line(&mut buf);
         match r {
@@ -137,13 +137,13 @@ impl<I: BufRead, O: Write> DivaremaIoModule<I,O> {
                 Ok(parse_i32(buf.into_bytes()))
             },
             Err(msg) => {
-                println!("Error parsing '{}'", buf);
+                println!("Error reading '{}'", buf);
                 Err("Couldn't parse integer")
             }
         }
     }
 
-    fn put_int(&mut self, x: i32) -> Result<(), &str> {
+    pub fn put_int(&mut self, x: i32) -> Result<(), &str> {
         let mut cs = format_i32(x);
         cs.push('\n' as u8);
         self.output.write(&cs);

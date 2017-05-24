@@ -128,7 +128,7 @@ fn apply_store<I: BufRead, O: Write>(engine: &mut DivaremaEngine<I,O>, arg: usiz
 #[test]
 fn test_apply_store() {
     let inp = empty();
-    let outp = sink();    
+    let outp = sink();
     let mut test_engine = DivaremaEngine::new(vec![], 10, inp, outp);
     test_engine.acc = 5;
     apply_store(&mut test_engine, 0);
@@ -151,7 +151,7 @@ fn apply_jgz<I: BufRead, O: Write>(engine: &mut DivaremaEngine<I,O>, arg: usize)
 #[test]
 fn test_apply_jgz() {
     let inp = empty();
-    let outp = sink();    
+    let outp = sink();
     let mut test_engine = DivaremaEngine::new(vec![], 10, inp, outp);
     test_engine.acc = 1;
     apply_jgz(&mut test_engine, 9);
@@ -163,6 +163,50 @@ fn test_apply_jgz() {
 }
 
 
+fn apply_read<I: BufRead, O: Write>(engine: &mut DivaremaEngine<I,O>, arg: usize) {
+    let next_ic = engine.instruction_counter + 1;
+    let n = engine.io_module.get_int().unwrap();
+    engine.memory[arg] = n;
+    engine.instruction_counter = next_ic;
+}
+
+#[test]
+fn test_apply_read() {
+    let inp: &[u8] = &String::from("123\n-456\n").into_bytes();
+    let outp = sink();
+    let mut test_engine = DivaremaEngine::new(vec![], 10, inp, outp);
+
+    apply_read(&mut test_engine, 0);
+    assert_eq!(test_engine.memory[0], 123);
+    apply_read(&mut test_engine, 1);
+    assert_eq!(test_engine.memory[1], -456);
+}
+
+
+fn apply_write<I: BufRead, O: Write>(engine: &mut DivaremaEngine<I,O>, arg: usize) {
+    let next_ic = engine.instruction_counter + 1;
+    let outp_n = engine.memory[arg];
+    engine.io_module.put_int(outp_n);
+    engine.instruction_counter = next_ic;
+}
+
+#[test]
+fn test_apply_write() {
+    let inp = empty();
+    let mut outp: Vec<u8> = Vec::new();
+    let mut test_engine = DivaremaEngine::new(vec![], 10, inp, outp);
+    test_engine.memory[5] = 123;
+    test_engine.memory[6] = -456;
+
+    apply_write(&mut test_engine, 5);
+    assert_eq!(test_engine.io_module.output, [49u8, 50u8, 51u8, 10u8]);
+    apply_write(&mut test_engine, 6);
+    assert_eq!(
+        test_engine.io_module.output,
+        [49u8, 50u8, 51u8, 10u8,
+         45u8, 52u8, 53u8, 54u8, 10u8]);
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -172,7 +216,7 @@ mod tests {
     #[test]
     fn test_engine_init() {
         let inp = empty();
-        let outp = sink();        
+        let outp = sink();
         let test_prog = vec![
             (OpCode::Load, 0),
             (OpCode::Print, 0),
