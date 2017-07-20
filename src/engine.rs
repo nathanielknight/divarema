@@ -12,7 +12,8 @@ pub struct DivaremaEngine<I: BufRead, O: Write> {
     memory: DivaremaMemory,
     acc: i32,
     instruction_counter: usize,
-    io_module: DivaremaIoModule<I,O>
+    io_module: DivaremaIoModule<I,O>,
+    done: bool,
 }
 
 
@@ -31,39 +32,46 @@ impl<I: BufRead, O: Write> PartialEq for DivaremaEngine<I,O> {
 
 impl<I: BufRead, O: Write> DivaremaEngine<I,O> {
 
-    fn new(program: DivaremaProgram, memsize: usize, inp: I, outp: O) -> DivaremaEngine<I,O>{
+    pub fn new(program: DivaremaProgram, memsize: usize, inp: I, outp: O) -> DivaremaEngine<I,O>{
         DivaremaEngine {
             program: program,
             memory: vec![0; memsize],
             acc: 0,
             instruction_counter: 0,
             io_module: DivaremaIoModule{input: inp, output: outp},
+            done: false,
         }
     }
 
     fn apply(&mut self, action: (OpCode, usize)) {
         let (op, arg) = action;
 
-        let executor = match op {
+        match op {
             OpCode::Load => apply_load(self, arg),
             OpCode::Add => apply_add(self, arg),
             OpCode::Sub => apply_sub(self, arg),
             OpCode::Store => apply_store(self, arg),
             OpCode::Jgz => apply_jgz(self, arg),
             OpCode::Read => unimplemented!(),
-            OpCode::Print => unimplemented!(),
-            OpCode::Halt => unimplemented!()
+            OpCode::Print => apply_print(self, arg),
+            OpCode::Halt => apply_halt(self, arg),
         };
+    }
+
+    // TODO(nknight): optional debugging info
+    pub fn run(&mut self) {
+        while !self.done {
+            let action = self.program[self.instruction_counter].clone();
+            self.apply(action);
+        }
     }
 
 }
 
 
 fn apply_load<I: BufRead, O: Write>(engine: &mut DivaremaEngine<I,O>, arg: usize) {
-    let val = engine.memory[arg];
-    let next_ic = engine.instruction_counter + 1;
-    engine.acc = val;
-    engine.instruction_counter = next_ic;
+    engine.acc = arg as i32;
+    engine.instruction_counter += 1;
 }
 
 #[test]
@@ -72,9 +80,8 @@ fn test_apply_load() {
     let outp = sink();
     let mut test_engine = DivaremaEngine::new(vec![], 10, inp, outp);
     assert_eq!(test_engine.acc, 0);
-    test_engine.memory[3] = 9;
     apply_load(&mut test_engine, 3);
-    assert_eq!(test_engine.acc, 9);
+    assert_eq!(test_engine.acc, 3);
 }
 
 
@@ -208,6 +215,28 @@ fn test_apply_write() {
 }
 
 
+// Tests in the io_module
+fn apply_print<I: BufRead, O: Write>(engine: &mut DivaremaEngine<I,O>, arg: usize) {
+    let output = engine.memory[arg];
+    engine.io_module.put_int(output);
+    engine.instruction_counter += 1;
+}
+
+fn apply_halt<I: BufRead, O: Write>(engine: &mut DivaremaEngine<I,O>, arg: usize) {
+    engine.done = true;
+}
+
+#[test]
+fn test_halt() {
+    let inp = empty();
+    let mut outp: Vec<u8> = Vec::new();
+    let mut test_engine = DivaremaEngine::new(vec![], 10, inp, outp);
+    assert!(test_engine.done == false, "New engine isn't done");
+    apply_halt(&mut test_engine, 0);
+    assert!(test_engine.done == true, "Engine is done after applying halt");
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -243,10 +272,10 @@ mod tests {
             acc: 0,
             instruction_counter: 0,
             io_module: DivaremaIoModule{input: inp, output: outp},
+            done: false,
         };
 
         assert_eq!(test_engine, test_engine_raw);
     }
-
 
 }
