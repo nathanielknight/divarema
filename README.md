@@ -40,18 +40,16 @@ Two special registers control operation and implement arithmetic:
 
 Programs for `divarema` can include the following instructions:
 
-<pre>
-| Operation | Description                            | Mnemonic                |
-|-----------+----------------------------------------+-------------------------|
-| LOAD j    | ACC <- j ; IC <- IC+2                  | load                    |
-| ADD j     | ACC <- [ACC] + [Xj] ; IC <- IC+2       | add                     |
-| SUB j     | ACC <- [ACC] - [Xj] ; IC <- IC+2       | subtract                |
-| STORE j   | Xj <- [ACC] ; IC <- IC+2               | store                   |
-| JGZ j     | if AC > 0 then IC <- j else IC <- IC+2 | jump-greather-than-zero |
-| READ j    | Xj <- next input                       | read                    |
-| PRINT j   | output [Xj]                            | print                   |
-| HALT _    | stop execution                         | halt                    |
-</pre>
+Operation | Description                            | Mnemonic                
+--------- | -------------------------------------- | -------------------------
+LOAD j    | ACC <- j ; IC <- IC+2                  | load                    
+ADD j     | ACC <- [ACC] + [Xj] ; IC <- IC+2       | add                     
+SUB j     | ACC <- [ACC] - [Xj] ; IC <- IC+2       | subtract                
+STORE j   | Xj <- [ACC] ; IC <- IC+2               | store                   
+JGZ j     | if AC > 0 then IC <- j else IC <- IC+2 | jump-greather-than-zero 
+READ j    | Xj <- next input                       | read                    
+PRINT j   | output [Xj]                            | print                   
+HALT _    | stop execution                         | halt                    
 
 
 ## License
